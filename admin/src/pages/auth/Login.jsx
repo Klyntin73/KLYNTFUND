@@ -77,7 +77,7 @@ const Login = () => {
                <button
                   type="submit"
                   disabled={ loading }
-                  className="w-full flex items-center justify-center gap-2 py-2 rounded-md bg-yellow-400 hover:bg-yellow-600 text-white font-medium transition disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-md bg-[#FACC15] hover:bg-yellow-400 text-[#0F172A] font-medium transition disabled:opacity-50"
                >
                   { loading ? <Loader className="animate-spin w-5 h-5 text-white" /> : 'Login' }
                </button>
