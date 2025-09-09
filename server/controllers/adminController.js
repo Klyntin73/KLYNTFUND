@@ -572,29 +572,54 @@ export const refundInvestment = async (req, res) => {
    }
 };
 
-// Resolved Dispute
-export const resolveDispute = async (req, res) => {
-   try {
-      const { investmentId } = req.params;
+// Get Refunded Investment
+export const getRefundedInvestments = async (req, res) => {
+  try {
+    const pipeline = [
+      { $unwind: "$investors" },
+      { $match: { "investors.status": "refunded" } },
 
-      const result = await projectModel.updateOne(
-         { "investors._id": investmentId },
-         {
-            $set: {
-               "investors.$.dispute.resolved": true,
-            },
-         }
-      );
+      // Lookup investor
+      {
+        $lookup: {
+          from: "users",
+          localField: "investors.investor",
+          foreignField: "_id",
+          as: "investorData",
+        },
+      },
+      { $unwind: "$investorData" },
 
-      if (result.modifiedCount === 0) {
-         return res.status(404).json({ success: false, message: "Investment not found" });
-      }
+      // Shape response
+      {
+        $project: {
+          _id: "$investors._id",
+          amount: "$investors.amount",
+          paymentRef: "$investors.paymentRef",
+          investedAt: "$investors.investedAt",
+          repaidAt: "$investors.repaidAt",
+          status: "$investors.status",
 
-      res.status(200).json({ success: true, message: "Dispute resolved successfully" });
-   } catch (error) {
-      console.error("Error resolving dispute:", error);
-      res.status(500).json({ success: false, message: "Server error" });
-   }
+          "investor.fullName": "$investorData.fullName",
+          "investor.email": "$investorData.email",
+          "project.title": "$title",
+          "project.category": "$category",
+        },
+      },
+      { $sort: { repaidAt: -1 } },
+    ];
+
+    const data = await projectModel.aggregate(pipeline);
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data,
+    });
+  } catch (error) {
+    console.error("Error fetching refunded investments:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 };
 
 // Get Disputed Investment
@@ -663,6 +688,66 @@ export const getDisputedInvestments = async (req, res) => {
       res.status(500).json({ success: false, message: "Server error" });
    }
 };
+
+
+// Update Dispute Status (resolve/reopen)
+export const updateDisputeStatus = async (req, res) => {
+  try {
+    const { id } = req.params; // investment _id (from investors array)
+    const { resolved } = req.body;
+
+    if (typeof resolved !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "Resolved field must be a boolean",
+      });
+    }
+
+    // Find project containing this investment
+    const project = await projectModel.findOne(
+      { "investors._id": id },
+      { "investors.$": 1, title: 1 } // return only the matching investor
+    );
+
+    if (!project || project.investors.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Investment not found",
+      });
+    }
+
+    // Update the specific investor dispute status
+    const updated = await projectModel.updateOne(
+      { "investors._id": id },
+      {
+        $set: {
+          "investors.$.dispute.resolved": resolved,
+        },
+      }
+    );
+
+    if (updated.modifiedCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Failed to update dispute status",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: resolved
+        ? `Dispute marked as resolved for project "${project.title}"`
+        : `Dispute reopened for project "${project.title}"`,
+    });
+  } catch (err) {
+    console.error("Error updating dispute status:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
 
 // Get Single Investment
 export const getSingleInvestment = async (req, res) => {

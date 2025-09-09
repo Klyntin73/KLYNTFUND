@@ -20,8 +20,9 @@ import Investments from './pages/investments/Investments';
 import AllInvestments from './pages/investments/AllInvestments';
 import ViewInvestmentDetail from './pages/investments/ViewInvestmentDetail';
 import FlaggedInvestments from './pages/investments/FlaggedInvestments';
-import RefundInvestment from './pages/investments/RefundInvestment';
 import DisputedInvestment from './pages/investments/DisputedInvestment';
+import RefundedInvestment from './pages/investments/RefundedInvestment';
+
 import UsersList from './pages/users/UsersList';
 import UserProfile from './pages/users/UserProfile';
 
@@ -51,7 +52,7 @@ const App = () => {
                <Route path='/admin/investments/all' element={ <AllInvestments /> } />
                <Route path='/admin/investment/view/:projectId/:paymentRef' element={ <ViewInvestmentDetail /> } />
                <Route path='/admin/investments/flagged' element={ <FlaggedInvestments /> } />
-               <Route path='/admin/investments/refunds' element={ <RefundInvestment /> } />
+               <Route path='/admin/investments/refunds' element={ <RefundedInvestment /> } />
                <Route path='/admin/investments/disputed' element={ <DisputedInvestment /> } />
 
                {/* User Routes  */ }

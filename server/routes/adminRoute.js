@@ -1,7 +1,7 @@
 import express from 'express';
 const adminRouter = express.Router();
 
-import { adminLogin, approveProject, deleteInvestment, deleteProject, deleteUser, getAdminDashboardAnalytics, getAllInvestments, getApprovedProjects, getCompletedProjects, getDisputedInvestments, getFlaggedInvestments, getPendingProjects, getProjectById, getRejectedProjects, getSingleInvestment, getUserById, getUsers, messageUser, refundInvestment, rejectProject, resolveDispute, toggleSuspendUser } from '../controllers/adminController.js';
+import { adminLogin, approveProject, deleteInvestment, deleteProject, deleteUser, getAdminDashboardAnalytics, getAllInvestments, getApprovedProjects, getCompletedProjects, getDisputedInvestments, getFlaggedInvestments, getPendingProjects, getProjectById, getRefundedInvestments, getRejectedProjects, getSingleInvestment, getUserById, getUsers, messageUser, refundInvestment, rejectProject, toggleSuspendUser, updateDisputeStatus } from '../controllers/adminController.js';
 import { adminAuth } from '../middlewares/adminAuth.js';
 import { deleteFeedback, getAllFeedbacks, getFeedbackById } from '../controllers/feedbackController.js';
 
@@ -22,8 +22,9 @@ adminRouter.delete('/project/delete/:id', adminAuth, deleteProject);
 adminRouter.get("/investments/all", adminAuth, getAllInvestments);
 adminRouter.get("/investments/flagged", adminAuth, getFlaggedInvestments);
 adminRouter.get("/investments/disputed", adminAuth, getDisputedInvestments);
-adminRouter.post("/investments/refund", adminAuth, refundInvestment);
-adminRouter.post("/investments/resolve-dispute", adminAuth, resolveDispute);
+adminRouter.patch("/investments/refund/:investmentId", adminAuth, refundInvestment);
+adminRouter.get("/investments/refunded", adminAuth, getRefundedInvestments);
+adminRouter.patch("/investments/disputed/:id",adminAuth,updateDisputeStatus);
 adminRouter.get('/investment/view/:projectId/:paymentRef', adminAuth, getSingleInvestment);
 adminRouter.delete('/investment/delete/:paymentRef', adminAuth, deleteInvestment);
 
