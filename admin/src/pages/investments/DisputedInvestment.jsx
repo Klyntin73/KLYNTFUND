@@ -10,7 +10,8 @@ import {
   Loader,
   ArrowLeft,
   CheckCircle,
-  XCircle,RotateCcw 
+  XCircle,
+  RotateCcw,
 } from "lucide-react";
 import { AdminContext } from "../../context/AdminContext";
 import { toast } from "react-toastify";
@@ -19,7 +20,7 @@ import { useNavigate } from "react-router-dom";
 const DisputedInvestment = () => {
   const { backendUrl, adminToken } = useContext(AdminContext);
   const [disputes, setDisputes] = useState([]);
-  const [refundingId, setRefundingId] = useState(null); 
+  const [refundingId, setRefundingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const navigate = useNavigate();
@@ -44,24 +45,20 @@ const DisputedInvestment = () => {
     fetchDisputes();
   }, [backendUrl, adminToken]);
 
+  // --- Toggle Dispute Resolved/Unresolved ---
   const toggleDispute = async (id, resolved) => {
     setUpdatingId(id);
     try {
       const { data } = await axios.patch(
         `${backendUrl}/api/admin/investments/disputed/${id}`,
         { resolved },
-        {
-          headers: { Authorization: `Bearer ${adminToken}` },
-        }
+        { headers: { Authorization: `Bearer ${adminToken}` } }
       );
       if (data.success) {
         toast.success(data.message);
-        // refresh
         setDisputes((prev) =>
           prev.map((d) =>
-            d._id === id
-              ? { ...d, dispute: { ...d.dispute, resolved } }
-              : d
+            d._id === id ? { ...d, dispute: { ...d.dispute, resolved } } : d
           )
         );
       } else {
@@ -75,8 +72,7 @@ const DisputedInvestment = () => {
     }
   };
 
-
-    // --- Refund Investment Handler ---
+  // --- Refund Investment Handler ---
   const refundInvestment = async (id) => {
     setRefundingId(id);
     try {
@@ -87,7 +83,7 @@ const DisputedInvestment = () => {
       );
       if (data.success) {
         toast.success(data.message);
-        // remove refunded one from disputes
+        // remove refunded one from disputes list
         setDisputes((prev) => prev.filter((d) => d._id !== id));
       } else {
         toast.error(data.message || "Failed to refund");
@@ -102,6 +98,7 @@ const DisputedInvestment = () => {
 
   return (
     <div className="">
+      {/* Back Button */}
       <button
         onClick={() => {
           navigate(-1);
@@ -112,6 +109,7 @@ const DisputedInvestment = () => {
         <ArrowLeft className="w-4 h-4 text-[#3498DB]" /> Back
       </button>
 
+      {/* Page Title */}
       <div className="flex justify-center">
         <h1 className="text-2xl font-bold mb-6 flex items-center gap-2 text-green-600">
           <Handshake className="w-6 h-6" />
@@ -119,6 +117,7 @@ const DisputedInvestment = () => {
         </h1>
       </div>
 
+      {/* Content */}
       {loading ? (
         <div className="flex justify-center items-center py-10">
           <Loader className="animate-spin text-[#3498DB]" size={28} />
@@ -174,30 +173,27 @@ const DisputedInvestment = () => {
                 </p>
                 <p className="flex items-center gap-2 text-xs text-gray-400">
                   <Calendar className="w-4 h-4" />
-                  {new Date(
-                    inv.dispute?.date || inv.investedAt
-                  ).toLocaleString()}
+                  {new Date(inv.dispute?.date || inv.investedAt).toLocaleString()}
                 </p>
               </div>
 
-              {/* Dispute Reason */}
-              <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg">
-                <p className="font-semibold text-yellow-400 text-sm flex items-center gap-2">
-                  <Handshake className="w-4 h-4" />
-                  Dispute Reason:
-                </p>
-                <p className="text-gray-300 text-sm mt-1">
-                  {inv.dispute?.reason || "No reason provided"}
-                </p>
-              </div>
-
+              {/* Dispute or Fraud Reason */}
+<div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg">
+  <p className="font-semibold text-yellow-400 text-sm flex items-center gap-2">
+    <Handshake className="w-4 h-4" />
+    {inv.fraudFlag ? "Fraud Flagged:" : "Dispute Reason:"}
+  </p>
+  <p className="text-gray-300 text-sm mt-1">
+    {inv.fraudFlag
+      ? inv.fraudReasons?.join(", ") || "No fraud reason provided"
+      : inv.dispute?.reason || "No dispute reason provided"}
+  </p>
+</div>
               {/* Status + Actions */}
               <div className="mt-4 flex items-center justify-between">
                 <span
                   className={`flex items-center gap-1 text-sm font-medium ${
-                    inv.dispute?.resolved
-                      ? "text-green-400"
-                      : "text-red-400"
+                    inv.dispute?.resolved ? "text-green-400" : "text-red-400"
                   }`}
                 >
                   {inv.dispute?.resolved ? (
@@ -211,25 +207,24 @@ const DisputedInvestment = () => {
                   )}
                 </span>
 
-                <button
-                  onClick={() =>
-                    toggleDispute(inv._id, !inv.dispute?.resolved)
-                  }
-                  disabled={updatingId === inv._id}
-                  className={`px-3 py-1 text-sm rounded-md font-medium transition-colors ${
-                    inv.dispute?.resolved
-                      ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                      : "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                  }`}
-                >
-                  {updatingId === inv._id
-                    ? "Updating..."
-                    : inv.dispute?.resolved
-                    ? "Reopen"
-                    : "Resolve"}
-                </button>
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleDispute(inv._id, !inv.dispute?.resolved)}
+                    disabled={updatingId === inv._id}
+                    className={`px-3 py-1 text-sm rounded-md font-medium transition-colors ${
+                      inv.dispute?.resolved
+                        ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                        : "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                    }`}
+                  >
+                    {updatingId === inv._id
+                      ? "Updating..."
+                      : inv.dispute?.resolved
+                      ? "Reopen"
+                      : "Resolve"}
+                  </button>
 
-                 {/* Refund button */}
                   <button
                     onClick={() => refundInvestment(inv._id)}
                     disabled={refundingId === inv._id}
@@ -243,6 +238,7 @@ const DisputedInvestment = () => {
                       </>
                     )}
                   </button>
+                </div>
               </div>
             </motion.div>
           ))}

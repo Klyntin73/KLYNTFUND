@@ -624,69 +624,75 @@ export const getRefundedInvestments = async (req, res) => {
 
 // Get Disputed Investment
 export const getDisputedInvestments = async (req, res) => {
-   try {
-      const { resolved } = req.query;
+  try {
+    const { resolved } = req.query;
 
-      // Base match: has a dispute (reason is not null)
-      const match = { "investors.dispute.reason": { $ne: null } };
+    // Base match: has dispute OR fraud flag
+    const match = {
+      $or: [
+        { "investors.dispute.reason": { $ne: null } },
+        { "investors.fraudFlag": true },
+      ],
+    };
 
-      // Optional filter by resolution status
-      if (resolved === "true") match["investors.dispute.resolved"] = true;
-      if (resolved === "false") match["investors.dispute.resolved"] = false;
+    // Optional filter by resolution status (only applies to dispute)
+    if (resolved === "true") match["investors.dispute.resolved"] = true;
+    if (resolved === "false") match["investors.dispute.resolved"] = false;
 
-      const pipeline = [
-         { $unwind: "$investors" },
-         { $match: match },
+    const pipeline = [
+      { $unwind: "$investors" },
+      { $match: match },
 
-         // Lookup investor details
-         {
-            $lookup: {
-               from: "users",
-               localField: "investors.investor",
-               foreignField: "_id",
-               as: "investorData",
-            },
-         },
-         { $unwind: "$investorData" },
+      // Lookup investor details
+      {
+        $lookup: {
+          from: "users",
+          localField: "investors.investor",
+          foreignField: "_id",
+          as: "investorData",
+        },
+      },
+      { $unwind: "$investorData" },
 
-         // Final shape
-         {
-            $project: {
-               _id: "$investors._id",
-               amount: "$investors.amount",
-               paymentRef: "$investors.paymentRef",
-               investedAt: "$investors.investedAt",
-               status: "$investors.status",
-               flagged: "$investors.flagged",
+      // Final shape
+      {
+        $project: {
+          _id: "$investors._id",
+          amount: "$investors.amount",
+          paymentRef: "$investors.paymentRef",
+          investedAt: "$investors.investedAt",
+          status: "$investors.status",
+          fraudFlag: "$investors.fraudFlag",
+          fraudReasons: "$investors.fraudReasons",
 
-               // Dispute details
-               "dispute.reason": "$investors.dispute.reason",
-               "dispute.date": "$investors.dispute.date",
-               "dispute.resolved": "$investors.dispute.resolved",
+          // Dispute details
+          "dispute.reason": "$investors.dispute.reason",
+          "dispute.date": "$investors.dispute.date",
+          "dispute.resolved": "$investors.dispute.resolved",
 
-               // Joined user + project
-               "investor.fullName": "$investorData.fullName",
-               "investor.email": "$investorData.email",
-               "project.title": "$title",
-               "project.category": "$category",
-            },
-         },
+          // Joined user + project
+          "investor.fullName": "$investorData.fullName",
+          "investor.email": "$investorData.email",
+          "project.title": "$title",
+          "project.category": "$category",
+        },
+      },
 
-         // Sort by dispute date (fallback to investedAt)
-         { $sort: { "dispute.date": -1, investedAt: -1 } },
-      ];
+      // Sort by dispute date (fallback to investedAt)
+      { $sort: { "dispute.date": -1, investedAt: -1 } },
+    ];
 
-      const data = await projectModel.aggregate(pipeline);
+    const data = await projectModel.aggregate(pipeline);
 
-      res.status(200).json({
-         success: true,
-         count: data.length,
-         data,
-      });
-   } catch (error) {
-      console.error("Error fetching disputed investments:", error);
-      res.status(500).json({ success: false, message: "Server error" });
-   }
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data,
+    });
+  } catch (error) {
+    console.error("Error fetching disputed investments:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 };
 
 
