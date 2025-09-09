@@ -709,11 +709,11 @@ export const updateDisputeStatus = async (req, res) => {
       });
     }
 
-    // Find project containing this investment
+    // Find project containing this investment (fetch investor + title)
     const project = await projectModel.findOne(
       { "investors._id": id },
-      { "investors.$": 1, title: 1 } // return only the matching investor
-    );
+      { "investors.$": 1, title: 1 }
+    ).populate("investors.investor", "fullName email");
 
     if (!project || project.investors.length === 0) {
       return res.status(404).json({
@@ -721,6 +721,9 @@ export const updateDisputeStatus = async (req, res) => {
         message: "Investment not found",
       });
     }
+
+    const investment = project.investors[0];
+    const investor = investment.investor;
 
     // Update the specific investor dispute status
     const updated = await projectModel.updateOne(
@@ -739,11 +742,40 @@ export const updateDisputeStatus = async (req, res) => {
       });
     }
 
+    // Prepare email content
+    const subject = resolved
+      ? "Your dispute has been resolved"
+      : "Your dispute has been reopened";
+
+    const html = `
+      <div style="font-family:Arial, sans-serif; line-height:1.5;">
+        <h2 style="color:#16a34a;">Dispute Update</h2>
+        <p>Dear ${investor.fullName},</p>
+        <p>
+          The dispute you raised regarding your investment in 
+          <strong>${project.title}</strong> has been 
+          <strong style="color:${resolved ? "#16a34a" : "#dc2626"};">
+            ${resolved ? "resolved" : "reopened"}
+          </strong>.
+        </p>
+        <p>If you have further concerns, please contact our support team.</p>
+        <br />
+        <p>Best regards,<br/>The Support Team</p>
+      </div>
+    `;
+
+    // Send email to investor
+    await sendEmail({
+      to: investor.email,
+      subject,
+      html,
+    });
+
     return res.status(200).json({
       success: true,
       message: resolved
-        ? `Dispute marked as resolved for project "${project.title}"`
-        : `Dispute reopened for project "${project.title}"`,
+        ? `Dispute marked as resolved for project "${project.title}" and email sent to ${investor.email}`
+        : `Dispute reopened for project "${project.title}" and email sent to ${investor.email}`,
     });
   } catch (err) {
     console.error("Error updating dispute status:", err);
